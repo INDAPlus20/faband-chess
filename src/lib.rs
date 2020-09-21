@@ -1,6 +1,69 @@
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+///The two colors in the game, might change one to cerise
+enum Colors {
+    White,
+    Black,
+}
+
+///All types pieces that exist on the board (listed in order of value in my opinion)
+enum PieceTypes {
+    Pawn,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King,
+}
+
+///Determines how a piece is structured
+struct Piece {
+    color: Colors,
+    rank: PieceTypes,
+    //possible_moves:
+    //fix a vector for possible moves
+}
+
+impl Piece {
+    ///Constructs a new piece of given color and type.
+    pub fn new(rank: PieceTypes, color: Colors) -> Piece {
+        Piece {
+            color: color,
+            rank: rank,
+        }
+    }
+    //fix promotion for pawn
+}
+
+///Defines how the board is constructed
+pub struct BoardSquare {
+    ///A board piece has a piece (or not) and a location telling us where it is located (duh)
+    piece: Option<Piece>,
+    location: (usize, usize),
+    //movelog: (usize, string, string), maybe not have it stored in board
+}
+
+impl BoardSquare {
+    ///Constructs an ordinary square on the board without a piece
+    pub fn new_square(row: usize, rank: usize) -> Self {
+        Self {
+            location: (row, rank),
+            piece: None,
+        }
+    }
+    ///Decalres the array that is the playing board
+    pub fn new_board() -> Vec<BoardSquare> {
+        let mut board_vector: Vec<BoardSquare>;
+        for x in 0..8 {
+            for y in 0..8 {
+                board_vector.push(BoardSquare::new_square(x, y));
+            }
+        }
+        return board_vector;
+    }
+}
+
 pub enum GameState {
     InProgress,
     Check,
@@ -10,6 +73,7 @@ pub enum GameState {
 pub struct Game {
     ///Save board, active color, ...
     state: GameState,
+    board: Vec<BoardSquare>,
 }
 
 impl Game {
@@ -18,6 +82,7 @@ impl Game {
         Game {
             ///Initialises a new board and set the active color to white
             state: GameState::InProgress,
+            board: BoardSquare::new_board(),
         }
     }
     ///If the current game state is in progress and the move is legal
