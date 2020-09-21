@@ -1,41 +1,10 @@
+use crate::piece::Colors::*;
+use crate::piece::PieceTypes::*;
 use std::fmt;
+mod piece;
+pub use piece::Piece;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-///The two colors in the game, might change one to cerise
-enum Colors {
-    White,
-    Black,
-}
-
-///All types pieces that exist on the board (listed in order of value in my opinion)
-enum PieceTypes {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
-}
-
-///Determines how a piece is structured
-struct Piece {
-    color: Colors,
-    rank: PieceTypes,
-    //possible_moves:
-    //fix a vector for possible moves
-}
-
-impl Piece {
-    ///Constructs a new piece of given color and type.
-    pub fn new(rank: PieceTypes, color: Colors) -> Piece {
-        Piece {
-            color: color,
-            rank: rank,
-        }
-    }
-    //fix promotion for pawn
-}
-
 ///Defines how the board is constructed
 pub struct BoardSquare {
     ///A board piece has a piece (or not) and a location telling us where it is located (duh)
@@ -46,18 +15,87 @@ pub struct BoardSquare {
 
 impl BoardSquare {
     ///Constructs an ordinary square on the board without a piece
-    pub fn new_square(row: usize, rank: usize) -> Self {
+    pub fn new_square(row: usize, rank: usize, piece: Option<Piece>) -> Self {
         Self {
             location: (row, rank),
-            piece: None,
+            piece: piece,
         }
     }
-    ///Decalres the array that is the playing board
+    ///Decalres the array, or vector, that is the playing board and generates the pieces.
     pub fn new_board() -> Vec<BoardSquare> {
-        let mut board_vector: Vec<BoardSquare>;
-        for x in 0..8 {
-            for y in 0..8 {
-                board_vector.push(BoardSquare::new_square(x, y));
+        let mut board_vector: Vec<BoardSquare> = Vec::new();
+        for x in 1..9 {
+            if x == 1 {
+                //Most unelegant but it works
+                board_vector.push(BoardSquare::new_square(1, 1, Some(Piece::new(Rook, White))));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Knight, White)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Bishop, White)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Queen, White)),
+                ));
+                board_vector.push(BoardSquare::new_square(1, 2, Some(Piece::new(King, White))));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Bishop, White)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Knight, White)),
+                ));
+                board_vector.push(BoardSquare::new_square(1, 2, Some(Piece::new(Rook, White))));
+            } else if x == 2 {
+                for z in 1..9 {
+                    board_vector.push(BoardSquare::new_square(2, z, Some(Piece::new(Pawn, White))));
+                }
+            } else if x == 7 {
+                for i in 1..9 {
+                    board_vector.push(BoardSquare::new_square(7, i, Some(Piece::new(Pawn, Black))));
+                }
+            } else if x == 8 {
+                board_vector.push(BoardSquare::new_square(1, 1, Some(Piece::new(Rook, Black))));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Knight, Black)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Bishop, Black)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Queen, Black)),
+                ));
+                board_vector.push(BoardSquare::new_square(1, 2, Some(Piece::new(King, Black))));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Bishop, Black)),
+                ));
+                board_vector.push(BoardSquare::new_square(
+                    1,
+                    2,
+                    Some(Piece::new(Knight, Black)),
+                ));
+                board_vector.push(BoardSquare::new_square(1, 2, Some(Piece::new(Rook, Black))));
+            } else {
+                for y in 1..8 {
+                    board_vector.push(BoardSquare::new_square(x, y, None));
+                }
             }
         }
         return board_vector;
