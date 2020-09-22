@@ -1,23 +1,23 @@
-mod colors;
-mod piece_types;
+pub mod colors;
+pub mod piece_types;
 pub use colors::Colors;
-pub use piece_types::PieceTypes;
+pub use piece_types::PieceType;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 
 ///Determines how a piece is structured
 pub struct Piece {
-    color: Colors,
-    rank: PieceTypes,
+    pub color: Colors,
+    pub piece_type: PieceType,
     possible_move: Option<(usize, usize)>,
 }
 
 impl Piece {
     ///Constructs a new piece of given color and type.
-    pub fn new(rank: PieceTypes, color: Colors) -> Piece {
+    pub fn new(rank: PieceType, color: Colors) -> Piece {
         Piece {
             color: color,
-            rank: rank,
+            piece_type: rank,
             possible_move: None,
         }
     }

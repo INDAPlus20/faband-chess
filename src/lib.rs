@@ -2,6 +2,8 @@ use std::fmt;
 pub mod board;
 pub mod piece;
 pub use board::BoardSquare;
+pub use piece::Colors;
+pub use piece::Colors::*;
 pub use piece::Piece;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -14,6 +16,7 @@ pub enum GameState {
 pub struct Game {
     ///Save board, active color, ...
     state: GameState,
+    acting_color: Colors,
     board: Vec<BoardSquare>,
 }
 
@@ -23,6 +26,7 @@ impl Game {
         Game {
             ///Initialises a new board and set the active color to white
             state: GameState::InProgress,
+            acting_color: White,
             board: BoardSquare::new_board(),
         }
     }
