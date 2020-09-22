@@ -9,8 +9,7 @@ pub use piece_types::PieceTypes;
 pub struct Piece {
     color: Colors,
     rank: PieceTypes,
-    //possible_moves:
-    //fix a vector for possible moves
+    possible_move: Option<(usize, usize)>,
 }
 
 impl Piece {
@@ -19,6 +18,7 @@ impl Piece {
         Piece {
             color: color,
             rank: rank,
+            possible_move: None,
         }
     }
     //fix promotion for pawn
