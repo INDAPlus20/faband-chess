@@ -9,7 +9,8 @@ pub use piece_types::PieceType;
 pub struct Piece {
     pub color: Colors,
     pub piece_type: PieceType,
-    possible_move: Option<(usize, usize)>,
+    //The possible moves are stored in a vector and are just added onto the indexing later
+    pub possible_moves: Vec<isize>,
 }
 
 impl Piece {
@@ -18,8 +19,11 @@ impl Piece {
         Piece {
             color: color,
             piece_type: rank,
-            possible_move: None,
+            possible_moves: Vec::new(),
         }
+    }
+    pub fn add_move(&mut self, moves: isize) {
+        self.possible_moves.push(moves);
     }
     //fix promotion for pawn
 }
