@@ -18,7 +18,6 @@ pub struct Game {
     acting_color: Colors,
     board: [Option<Piece>; 64],
     possible_moves: Vec<(usize, i8)>, //Vector for moves that can be made by various pieces
-    attacking_vector: Vec<(usize, i8, Option<Piece>)>, //Vector that stores pieces in the attacking paths of the king
 }
 
 impl Game {
@@ -30,7 +29,6 @@ impl Game {
             acting_color: White,
             board: Game::new_board(),
             possible_moves: vec![],
-            attacking_vector: vec![],
         }
     }
     ///Fills the array that is the board
@@ -188,12 +186,25 @@ impl Game {
                             .color
                             != reference.acting_color
                         {
-                            //Add move
-                            reference.possible_moves.push((index, possible_move));
+                            //Creates a theoretical board where the found move takes place and controls that it does not
+                            //cause a check
+                            let mut test_move: [Option<Piece>; 64] = reference.board;
+                            test_move[index + possible_move as usize] = test_move[index];
+                            test_move[index] = None;
+                            if Game::check_check(reference, test_move) == false {
+                                //Add move
+                                reference.possible_moves.push((index, possible_move));
+                            }
                         }
                         break;
                     } else {
-                        reference.possible_moves.push((index, possible_move));
+                        let mut test_move: [Option<Piece>; 64] = reference.board;
+                        test_move[index + possible_move as usize] = test_move[index];
+                        test_move[index] = None;
+                        if Game::check_check(reference, test_move) == false {
+                            //Add move
+                            reference.possible_moves.push((index, possible_move));
+                        }
                         break;
                     }
                 } else {
@@ -202,10 +213,22 @@ impl Game {
             }
         }
     }
+    fn find_king_index(board: [Option<Piece>; 64], active_color: Colors) -> usize {
+        let mut return_index: usize = 0;
+        for index in 0..64 {
+            if board[index].unwrap().piece_type == King
+                && board[index].unwrap().color == active_color
+            {
+                return_index = index;
+                break;
+            }
+        }
+        return return_index;
+    }
     ///Checks if the king is in check or not
-    fn check_check(reference: &mut Self, king_index: usize) -> bool {
+    fn check_check(reference: &Self, test_board: [Option<Piece>; 64]) -> bool {
+        let king_index = Game::find_king_index(test_board, reference.acting_color);
         //reference.impossible_moves.push((index, possible_move));
-        let mut controll_vector: Vec<(usize, i8)> = vec![];
         let offset_1: Vec<(i8, i8)> = vec![
             (0, 1),
             (0, -1),
