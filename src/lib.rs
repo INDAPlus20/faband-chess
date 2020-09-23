@@ -68,6 +68,7 @@ impl Game {
     ///If the current game state is in progress and the move is legal
     ///then move a piece and return the resulting state of the game
     pub fn make_move(&mut self, _from: String, _to: String) -> Option<GameState> {
+        //ASK IF ERROR HANDLING IS NEEDED
         None
     }
 
@@ -86,7 +87,7 @@ impl Game {
     pub fn get_possible_moves(&mut self, _position: String) -> Option<Vec<String>> {
         None
     }
-    fn calculate_possible_moves(reference: &mut Self) -> Vec<(usize, i8)> {
+    fn calculate_possible_moves(reference: &mut Self) -> bool {
         //Fix an if statement for check so that we dont do unecessary calculations for check
         //Loops through the board
         for index in 0..64 {
@@ -95,8 +96,31 @@ impl Game {
                 //found_piece.piece_type
                 match reference.board[index].unwrap().piece_type {
                     Pawn => {
-                        //Code or something :P
-                        //Ill do this last, holy hell pawns are annoying
+                        let mut offset: Vec<(i8, i8)> = vec![(1, 0)];
+                        //Maybe return if promotion is not as I think
+                        //These rules check the nearby conditions for the pawns where their moves depend
+                        if reference.board[index].unwrap().color == White {
+                            if index >= 8 || index < 16 {
+                                offset.push(vec![(2, 0)]);
+                            }
+                            if reference.board[index + 9].is_some() {
+                                offset.push(vec![(1, 1)]);
+                            }
+                            if reference.board[index + 7].is_some() {
+                                offset.push(vec![(1, -1)]);
+                            }
+                        } else {
+                            if index >= 48 || index < 56 {
+                                offset.push(vec![(2, 0)]);
+                            }
+                            if reference.board[index - 9].is_some() {
+                                offset.push(vec![(1, 1)]);
+                            }
+                            if reference.board[index - 7].is_some() {
+                                offset.push(vec![(1, -1)]);
+                            }
+                        }
+                        Game::normal_move(reference, index, offset, 6)
                     }
                     Knight => {
                         //Moves with its own offset but with a scalar restriction
@@ -112,7 +136,6 @@ impl Game {
                         ];
                         Game::normal_move(reference, index, offset, 6);
                     }
-                    //Defines the movement for a bishop
                     Bishop => {
                         //The directions that the bishop can move
                         let offset: Vec<(i8, i8)> = vec![(1, 1), (1, -1), (-1, 1), (-1, -1)];
@@ -120,7 +143,7 @@ impl Game {
                     }
                     Rook => {
                         //Moving in straight lines
-                        let offset: Vec<(i8, i8)> = vec![(0, 1), (0, -1), (-1, 0), (-1, 0)];
+                        let offset: Vec<(i8, i8)> = vec![(0, 1), (0, -1), (-1, 0), (1, 0)];
                         Game::normal_move(reference, index, offset, 0);
                     }
                     Queen => {
@@ -129,7 +152,7 @@ impl Game {
                             (0, 1),
                             (0, -1),
                             (-1, 0),
-                            (-1, 0),
+                            (1, 0),
                             (1, 1),
                             (1, -1),
                             (-1, 1),
@@ -154,7 +177,8 @@ impl Game {
                 }
             }
         }
-        return [(0, 0)].to_vec();
+        //If it returns true it means there are no possible moves -> Checkmate
+        reference.possible_moves.is_empty()
     }
     ///The standard template for a normal move
     fn normal_move(
@@ -227,13 +251,19 @@ impl Game {
     }
     ///Checks if the king is in check or not
     fn check_check(reference: &Self, test_board: [Option<Piece>; 64]) -> bool {
+        let inverse_movement: i8;
+        if reference.acting_color == White {
+            inverse_movement = 1;
+        } else {
+            inverse_movement = -1;
+        }
         let king_index = Game::find_king_index(test_board, reference.acting_color);
         //reference.impossible_moves.push((index, possible_move));
         let offset_1: Vec<(i8, i8)> = vec![
             (0, 1),
             (0, -1),
             (-1, 0),
-            (-1, 0), //Looking for rooks or queens on the rook offset
+            (1, 0), //Looking for rooks or queens on the rook offset
             (1, 1),
             (1, -1),
             (-1, 1),
@@ -253,7 +283,7 @@ impl Game {
         ];
         for direction in offset_1 {
             for scalar in 1..8 {
-                let possible_move = (direction.1 + 8 * direction.0) * scalar;
+                let possible_move = (direction.1 + 8 * direction.0) * scalar * inverse_movement;
                 //Check so that the line is inside the board
                 if (possible_move + king_index as i8) <= 63
                     && (possible_move + king_index as i8) >= 0
@@ -305,7 +335,7 @@ impl Game {
             }
         }
         for direction in offset_2 {
-            let possible_move = direction.1 + 8 * direction.0;
+            let possible_move = direction.1 + 8 * direction.0 * inverse_movement;
             //Check so that the line is inside the board
             if (possible_move + king_index as i8) <= 63 && (possible_move + king_index as i8) >= 0 {
                 //piece in path
