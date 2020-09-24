@@ -69,11 +69,13 @@ impl Game {
     ///then move a piece and return the resulting state of the game
     pub fn make_move(&mut self, _from: String, _to: String) -> Option<GameState> {
         //ASK IF ERROR HANDLING IS NEEDED
+        //Use AssertEq and stuff
         None
     }
 
     ///Set the piece type that a peasant becomes following a promotion
     pub fn set_promotion(&mut self, _piece: String) -> () {
+        //Might remove this and use it with make_move and chess notations
         ()
     }
 
@@ -84,8 +86,19 @@ impl Game {
 
     ///If a piece is standing on a tile, return all possible moves for
     ///that piece. Include rules for check. Include special moves (en passent, etc)
-    pub fn get_possible_moves(&mut self, _position: String) -> Option<Vec<String>> {
-        None
+    pub fn get_possible_moves(reference: &mut Self, _position: String) -> Option<Vec<String>> {
+        let index_position = Game::string_to_index(_position);
+        let mut returning_possible_moves: Vec<String> = vec![];
+        if !reference.possible_moves.is_empty() {
+            reference.possible_moves.iter().map(|x| {
+                if x.0 == index_position {
+                    returning_possible_moves.push(Game::index_to_string(x.1));
+                }
+            });
+            return Some(returning_possible_moves);
+        } else {
+            None
+        }
     }
     fn calculate_possible_moves(reference: &mut Self) -> bool {
         //Fix an if statement for check so that we dont do unecessary calculations for check
@@ -103,20 +116,20 @@ impl Game {
                             if index >= 8 || index < 16 {
                                 offset.push(vec![(2, 0)]);
                             }
-                            if reference.board[index + 9].is_some() {
+                            if reference.board[index + 9].is_some() && index % 8 != 7 {
                                 offset.push(vec![(1, 1)]);
                             }
-                            if reference.board[index + 7].is_some() {
+                            if reference.board[index + 7].is_some() && index % 8 != 0 {
                                 offset.push(vec![(1, -1)]);
                             }
                         } else {
                             if index >= 48 || index < 56 {
                                 offset.push(vec![(2, 0)]);
                             }
-                            if reference.board[index - 9].is_some() {
+                            if reference.board[index - 9].is_some() && index % 8 != 7 {
                                 offset.push(vec![(1, 1)]);
                             }
-                            if reference.board[index - 7].is_some() {
+                            if reference.board[index - 7].is_some() && index % 8 != 0 {
                                 offset.push(vec![(1, -1)]);
                             }
                         }
@@ -197,7 +210,6 @@ impl Game {
         //loops through the different directions in the given offset
         for direction in offset {
             //Gives all possible moves from the given piece, it goes up to 7 since it is not possible to move further on the board
-            //FIX SO SCALAR GOES CORRECT WITH PAWN
             for scalar in 1..(8 - special_movement) {
                 //Since the board is 8x8 the possible moves loop around after 8 steps in the array
                 let possible_move = (direction.1 + 8 * direction.0) * scalar * inverse_movement;
@@ -237,6 +249,7 @@ impl Game {
             }
         }
     }
+    ///Finds the location of the king of the playing color
     fn find_king_index(board: [Option<Piece>; 64], active_color: Colors) -> usize {
         let mut return_index: usize = 0;
         for index in 0..64 {
@@ -377,6 +390,36 @@ impl Game {
         //If no checks are discovered we return false
         false
     }
+    fn index_to_string(index: i8) -> String {
+        let mut square: String = "".to_string();
+        square.push(match index % 8 {
+            0 => 'a',
+            1 => 'b',
+            2 => 'c',
+            3 => 'd',
+            4 => 'e',
+            5 => 'f',
+            6 => 'g',
+            7 => 'h',
+        });
+        square.push(((index - index % 8) / 8) as u8 as char);
+        square
+    }
+    fn string_to_index(_string_input: String) -> usize {
+        //expects the input to be in the shape of ex: "e4", takes the letter and converts it to a column
+        let column: usize = match &_string_input[0..1] {
+            "a" => 0,
+            "b" => 1,
+            "c" => 2,
+            "d" => 3,
+            "e" => 4,
+            "f" => 5,
+            "g" => 6,
+            "h" => 7,
+        };
+        //This assumes that the input is correct...
+        column * 8 + _string_input[1..2].parse::<usize>().unwrap() as usize
+    }
 }
 
 /// Implement print routine for Game.
@@ -419,7 +462,6 @@ mod tests {
     #[test]
     fn game_in_progress_after_init() {
         let game = Game::new();
-
         assert_eq!(game.get_game_state(), GameState::InProgress);
     }
 }
