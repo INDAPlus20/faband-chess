@@ -19,5 +19,4 @@ impl Piece {
             piece_type: rank,
         }
     }
-    //fix promotion for pawn
 }
