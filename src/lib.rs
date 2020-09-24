@@ -1,4 +1,5 @@
 use crate::piece::PieceType::*;
+use crate::GameState::*;
 use std::fmt;
 pub mod piece;
 pub use piece::Colors;
@@ -70,15 +71,50 @@ impl Game {
     }
     ///If the current game state is in progress and the move is legal
     ///then move a piece and return the resulting state of the game
-    pub fn make_move(&mut self, _from: String, _to: String) -> Option<GameState> {
-        //Use AssertEq and stuff
-        None
+    pub fn make_move(&mut self, _from: String, _to: String) -> GameState {
+        let from_index: usize = Game::string_to_index(_from);
+        //Checks if it is a promotion move
+        if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == White {
+            //Expects the _to to be a piece reference, not a square one
+            Game::set_promotion(&mut self, from_index + 8, _to);
+            self.board[from_index] = None;
+        } else if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == Black {
+            //Expects the _to to be a piece reference, not a square one
+            Game::set_promotion(&mut self, from_index - 8, _to);
+            self.board[from_index] = None;
+        } else {
+            //Standard movement
+            let to_index = Game::string_to_index(_to);
+            self.board[to_index] = self.board[from_index];
+            self.board[from_index] = None;
+        }
+        if self.acting_color == White {
+            self.acting_color = Black
+        } else {
+            self.acting_color = White
+        }
+        if Game::check_check(self.acting_color, self.board, self.board) {
+            if Game::calculate_possible_moves(&self.board, self.acting_color).is_empty() {
+                //Checkmate -ish
+                self.state = GameOver;
+            } else {
+                self.state = Check;
+            }
+        } else {
+            self.state = InProgress;
+        }
+        return self.state;
     }
 
     ///Set the piece type that a peasant becomes following a promotion
-    fn set_promotion(&mut self, _piece: String) -> () {
-        //Might remove this and use it with make_move and chess notations
-        ()
+    fn set_promotion(&mut self, index: usize, _piece: String) -> () {
+        let promoting_piece = match &_piece[0..1] {
+            "Q" => Queen,
+            "Kn" => Knight,
+            "R" => Rook,
+            "B" => Bishop,
+        };
+        self.board[index] = Some(Piece::new(promoting_piece, self.acting_color));
     }
 
     ///Get the current game state
@@ -307,7 +343,7 @@ impl Game {
         }
         return return_index;
     }
-    ///Checks if the king is in check or not
+    ///Checks if the king is in check or not, returns true if in check
     fn check_check(
         acting_color: Colors,
         board: [Option<Piece>; 64],
