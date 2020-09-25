@@ -72,15 +72,17 @@ impl Game {
     ///If the current game state is in progress and the move is legal
     ///then move a piece and return the resulting state of the game
     pub fn make_move(&mut self, _from: String, _to: String) -> GameState {
+        //GO AND FIX THE POSSIBLE MOVES FOR PAWNS
+        //CHECK SO THAT THE INPU MOVES ARE LEGAL AKA IN THE POSSIBLE MOVES VECTOR
         let from_index: usize = Game::string_to_index(_from);
         //Checks if it is a promotion move
         if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == White {
             //Expects the _to to be a piece reference, not a square one
-            Game::set_promotion(&mut self, from_index + 8, _to);
+            Game::set_promotion(self, from_index + 8, _to);
             self.board[from_index] = None;
         } else if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == Black {
             //Expects the _to to be a piece reference, not a square one
-            Game::set_promotion(&mut self, from_index - 8, _to);
+            Game::set_promotion(self, from_index - 8, _to);
             self.board[from_index] = None;
         } else {
             //Standard movement
@@ -113,6 +115,7 @@ impl Game {
             "Kn" => Knight,
             "R" => Rook,
             "B" => Bishop,
+            _default => Pawn,
         };
         self.board[index] = Some(Piece::new(promoting_piece, self.acting_color));
     }
@@ -156,32 +159,30 @@ impl Game {
                         //These rules check the nearby conditions for the pawns where their moves depend
                         if board[index].unwrap().color == White {
                             if index >= 8 || index < 16 {
-                                offset.push(vec![(2, 0)]);
+                                offset.push((2, 0));
                             }
                             if board[index + 9].is_some() && index % 8 != 7 {
-                                offset.push(vec![(1, 1)]);
+                                offset.push((1, 1));
                             }
                             if board[index + 7].is_some() && index % 8 != 0 {
-                                offset.push(vec![(1, -1)]);
+                                offset.push((1, -1));
                             }
                         } else {
                             if index >= 48 || index < 56 {
-                                offset.push(vec![(2, 0)]);
+                                offset.push((2, 0));
                             }
                             if board[index - 9].is_some() && index % 8 != 7 {
-                                offset.push(vec![(1, 1)]);
+                                offset.push((1, 1));
                             }
                             if board[index - 7].is_some() && index % 8 != 0 {
-                                offset.push(vec![(1, -1)]);
+                                offset.push((1, -1));
                             }
                         }
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            6,
-                        )]);
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 6);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                     Knight => {
                         //Moves with its own offset but with a scalar restriction
@@ -195,35 +196,29 @@ impl Game {
                             (-1, 2),
                             (-1, -2),
                         ];
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            6,
-                        )]);
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 6);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                     Bishop => {
                         //The directions that the bishop can move
                         let offset: Vec<(i8, i8)> = vec![(1, 1), (1, -1), (-1, 1), (-1, -1)];
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            0,
-                        )]);
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 0);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                     Rook => {
                         //Moving in straight lines
                         let offset: Vec<(i8, i8)> = vec![(0, 1), (0, -1), (-1, 0), (1, 0)];
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            0,
-                        )]);
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 0);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                     Queen => {
                         //Moving in basically all directions
@@ -237,13 +232,11 @@ impl Game {
                             (-1, 1),
                             (-1, -1),
                         ];
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            0,
-                        )]);
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 0);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                     King => {
                         //Moving like a queen, but with a limit to the scalar
@@ -257,13 +250,12 @@ impl Game {
                             (-1, 1),
                             (-1, -1),
                         ];
-                        possible_moves_vector.push(vec![Game::normal_move(
-                            board.clone(),
-                            acting_color,
-                            index,
-                            offset,
-                            6,
-                        )]);
+
+                        let vector =
+                            Game::normal_move(board.clone(), acting_color, index, offset, 6);
+                        for x in vector {
+                            possible_moves_vector.push((x.0, x.1));
+                        }
                     }
                 }
             }
@@ -295,8 +287,8 @@ impl Game {
                 let possible_move = (direction.1 + 8 * direction.0) * scalar * inverse_movement;
                 //Check so that the move is inside the board
                 if (possible_move + index as i8) <= 63 && (possible_move + index as i8) >= 0 {
-                    if board[index + possible_move as usize].is_some() {
-                        if board[index + possible_move as usize]
+                    if board[(index as i8 + possible_move) as usize].is_some() {
+                        if board[(index as i8 + possible_move) as usize]
                             .as_ref()
                             .unwrap()
                             .color
@@ -305,7 +297,7 @@ impl Game {
                             //Creates a theoretical board where the found move takes place and controls that it does not
                             //cause a check
                             let mut test_move: [Option<Piece>; 64] = board;
-                            test_move[index + possible_move as usize] = test_move[index];
+                            test_move[(index as i8 + possible_move) as usize] = test_move[index];
                             test_move[index] = None;
                             if Game::check_check(acting_color, board, test_move) == false {
                                 //Add move
@@ -315,7 +307,7 @@ impl Game {
                         break;
                     } else {
                         let mut test_move: [Option<Piece>; 64] = board;
-                        test_move[index + possible_move as usize] = test_move[index];
+                        test_move[(index as i8 + possible_move) as usize] = test_move[index];
                         test_move[index] = None;
                         if Game::check_check(acting_color, board, test_move) == false {
                             //Add move
@@ -334,7 +326,8 @@ impl Game {
     fn find_king_index(board: [Option<Piece>; 64], active_color: Colors) -> usize {
         let mut return_index: usize = 0;
         for index in 0..64 {
-            if board[index].unwrap().piece_type == King
+            if board[index].is_some()
+                && board[index].unwrap().piece_type == King
                 && board[index].unwrap().color == active_color
             {
                 return_index = index;
@@ -383,12 +376,12 @@ impl Game {
             for scalar in 1..8 {
                 let possible_move = (direction.1 + 8 * direction.0) * scalar * inverse_movement;
                 //Check so that the line is inside the board
-                if (possible_move + king_index as i8) <= 63
-                    && (possible_move + king_index as i8) >= 0
+                if (possible_move as isize + king_index as isize) <= 63
+                    && (possible_move as isize + king_index as isize) >= 0
                 {
                     //piece in path
-                    if board[king_index + possible_move as usize].is_some() {
-                        if board[king_index + possible_move as usize]
+                    if board[(king_index as i8 + possible_move) as usize].is_some() {
+                        if board[(king_index as i8 + possible_move) as usize]
                             .as_ref()
                             .unwrap()
                             .color
@@ -396,7 +389,7 @@ impl Game {
                         {
                             //Checks if we are looking for rooks or bishops essentially
                             if direction.1 == 0 || direction.0 == 0 {
-                                if board[king_index + possible_move as usize]
+                                if board[(king_index as i8 + possible_move) as usize]
                                     .as_ref()
                                     .unwrap()
                                     .piece_type
@@ -486,6 +479,7 @@ impl Game {
             5 => 'f',
             6 => 'g',
             7 => 'h',
+            _default => 'a',
         });
         square.push(((index - index % 8) / 8) as u8 as char);
         square
@@ -501,6 +495,7 @@ impl Game {
             "f" => 5,
             "g" => 6,
             "h" => 7,
+            _default => 0,
         };
         //This assumes that the input is correct...
         column * 8 + _string_input[1..2].parse::<usize>().unwrap() as usize
@@ -535,18 +530,21 @@ impl fmt::Debug for Game {
 mod tests {
     use super::Game;
     use super::GameState;
-
+    use super::Piece;
+    use crate::piece::Colors::*;
+    use crate::piece::PieceType::*;
     // check test framework
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-
     // example test
     // check that game state is in progress after initialisation
     #[test]
     fn game_in_progress_after_init() {
         let game = Game::new();
         assert_eq!(game.get_game_state(), GameState::InProgress);
+    }
+
+    #[test]
+    fn board_is_working_to_reference_after_init() {
+        let game = Game::new();
+        assert_eq!(game.board[0].unwrap(), Piece::new(Rook, White));
     }
 }
