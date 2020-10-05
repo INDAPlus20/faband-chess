@@ -71,45 +71,72 @@ impl Game {
     }
     ///If the current game state is in progress and the move is legal
     ///then move a piece and return the resulting state of the game
-    pub fn make_move(&mut self, _from: String, _to: String) -> GameState {
+    pub fn make_move(
+        reference: &mut Self,
+        ref_board: [Option<Piece>; 64],
+        _from: String,
+        _to: String,
+    ) -> [Option<Piece>; 64] {
         //GO AND FIX THE POSSIBLE MOVES FOR PAWNS
         //CHECK SO THAT THE INPU MOVES ARE LEGAL AKA IN THE POSSIBLE MOVES VECTOR
         let from_index: usize = Game::string_to_index(_from);
+        let mut board: [Option<Piece>; 64] = ref_board;
+        let to_index = Game::string_to_index(_to.clone());
         //Checks if it is a promotion move
-        if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == White {
+        if board[from_index].is_some()
+            && board[from_index].unwrap().piece_type == Pawn
+            && reference.acting_color == White
+            && (to_index < 64 && to_index >= 56)
+        {
             //Expects the _to to be a piece reference, not a square one
-            Game::set_promotion(self, from_index + 8, _to);
-            self.board[from_index] = None;
-        } else if self.board[from_index].unwrap().piece_type == Pawn && self.acting_color == Black {
+            board[to_index] =
+                Game::set_promotion(board, reference.acting_color, from_index + 8, _to);
+            board[from_index] = None;
+        } else if board[from_index].is_some()
+            && board[from_index].unwrap().piece_type == Pawn
+            && reference.acting_color == Black
+            && to_index < 8
+        {
             //Expects the _to to be a piece reference, not a square one
-            Game::set_promotion(self, from_index - 8, _to);
-            self.board[from_index] = None;
+            board[to_index] =
+                Game::set_promotion(board, reference.acting_color, from_index - 8, _to);
+            board[from_index] = None;
         } else {
             //Standard movement
-            let to_index = Game::string_to_index(_to);
-            self.board[to_index] = self.board[from_index];
-            self.board[from_index] = None;
+            board[to_index] = Some(Piece::new(
+                board[from_index].unwrap().piece_type,
+                board[from_index].unwrap().color,
+            ));
+            board[from_index] = None;
         }
-        if self.acting_color == White {
-            self.acting_color = Black
+        //New acting color
+        if reference.acting_color == White {
+            reference.acting_color = Black
         } else {
-            self.acting_color = White
+            reference.acting_color = White
         }
-        if Game::check_check(self.acting_color, self.board, self.board) {
-            if Game::calculate_possible_moves(&self.board, self.acting_color).is_empty() {
-                //Checkmate -ish
-                self.state = GameOver;
+        //Checks if there is a check in the current board
+        if Game::check_check(reference.acting_color, board, board) {
+            let v = Game::calculate_possible_moves(&board, reference.acting_color);
+            if v.is_empty() {
+                //Checkmate ~ish
+                reference.state = GameOver;
             } else {
-                self.state = Check;
+                reference.state = Check;
             }
         } else {
-            self.state = InProgress;
+            reference.state = InProgress;
         }
-        return self.state;
+        return board;
     }
 
     ///Set the piece type that a peasant becomes following a promotion
-    fn set_promotion(&mut self, index: usize, _piece: String) -> () {
+    fn set_promotion(
+        board: [Option<Piece>; 64],
+        acting_color: Colors,
+        index: usize,
+        _piece: String,
+    ) -> Option<Piece> {
         let promoting_piece = match &_piece[0..1] {
             "Q" => Queen,
             "Kn" => Knight,
@@ -117,7 +144,7 @@ impl Game {
             "B" => Bishop,
             _default => Pawn,
         };
-        self.board[index] = Some(Piece::new(promoting_piece, self.acting_color));
+        return Some(Piece::new(promoting_piece, acting_color));
     }
 
     ///Get the current game state
@@ -150,7 +177,7 @@ impl Game {
         //Loops through the board
         for index in 0..64 {
             //Check if the square has a piece on it self.board.iter().find(|&&found_piece| found_piece != None)
-            if board[index].is_some() {
+            if board[index].is_some() && board[index].unwrap().color == acting_color {
                 //found_piece.piece_type
                 match board[index].unwrap().piece_type {
                     Pawn => {
@@ -287,15 +314,44 @@ impl Game {
                 let possible_move = (direction.1 + 8 * direction.0) * scalar * inverse_movement;
                 //Check so that the move is inside the board
                 if (possible_move + index as i8) <= 63 && (possible_move + index as i8) >= 0 {
-                    if board[(index as i8 + possible_move) as usize].is_some() {
-                        if board[(index as i8 + possible_move) as usize]
-                            .as_ref()
-                            .unwrap()
-                            .color
-                            != acting_color
-                        {
-                            //Creates a theoretical board where the found move takes place and controls that it does not
-                            //cause a check
+                    if (index < 8 && (index as i8 + direction.1 < 8))
+                        || (index < 16
+                            && index >= 8
+                            && (index as i8 + direction.1 < 16 && index as i8 + direction.1 >= 8))
+                        || (index < 24
+                            && index >= 16
+                            && (index as i8 + direction.1 < 24 && index as i8 + direction.1 >= 16))
+                        || (index < 32
+                            && index >= 24
+                            && (index as i8 + direction.1 < 32 && index as i8 + direction.1 >= 24))
+                        || (index < 40
+                            && index >= 32
+                            && (index as i8 + direction.1 < 40 && index as i8 + direction.1 >= 32))
+                        || (index < 48
+                            && index >= 40
+                            && (index as i8 + direction.1 < 48 && index as i8 + direction.1 >= 40))
+                        || (index < 56
+                            && index >= 48
+                            && (index as i8 + direction.1 < 56 && index as i8 + direction.1 >= 48))
+                        || (index > 56 && index < 64 && (index as i8 + direction.1 < 64))
+                    {
+                        if board[(index as i8 + possible_move) as usize].is_some() {
+                            if board[(index as i8 + possible_move) as usize].unwrap().color
+                                != acting_color
+                            {
+                                //Creates a theoretical board where the found move takes place and controls that it does not
+                                //cause a check
+                                let mut test_move: [Option<Piece>; 64] = board;
+                                test_move[(index as i8 + possible_move) as usize] =
+                                    test_move[index];
+                                test_move[index] = None;
+                                if Game::check_check(acting_color, board, test_move) == false {
+                                    //Add move
+                                    possible_moves_vector.push((index, possible_move));
+                                }
+                            }
+                            break;
+                        } else {
                             let mut test_move: [Option<Piece>; 64] = board;
                             test_move[(index as i8 + possible_move) as usize] = test_move[index];
                             test_move[index] = None;
@@ -303,17 +359,8 @@ impl Game {
                                 //Add move
                                 possible_moves_vector.push((index, possible_move));
                             }
+                            break;
                         }
-                        break;
-                    } else {
-                        let mut test_move: [Option<Piece>; 64] = board;
-                        test_move[(index as i8 + possible_move) as usize] = test_move[index];
-                        test_move[index] = None;
-                        if Game::check_check(acting_color, board, test_move) == false {
-                            //Add move
-                            possible_moves_vector.push((index, possible_move));
-                        }
-                        break;
                     }
                 } else {
                     break;
@@ -382,7 +429,6 @@ impl Game {
                     //piece in path
                     if board[(king_index as i8 + possible_move) as usize].is_some() {
                         if board[(king_index as i8 + possible_move) as usize]
-                            .as_ref()
                             .unwrap()
                             .color
                             != acting_color
@@ -390,12 +436,10 @@ impl Game {
                             //Checks if we are looking for rooks or bishops essentially
                             if direction.1 == 0 || direction.0 == 0 {
                                 if board[(king_index as i8 + possible_move) as usize]
-                                    .as_ref()
                                     .unwrap()
                                     .piece_type
                                     == Rook
                                     || board[king_index + possible_move as usize]
-                                        .as_ref()
                                         .unwrap()
                                         .piece_type
                                         == Queen
@@ -404,13 +448,11 @@ impl Game {
                                 }
                             }
                             //Checks if we are being attacked by bisops or queens
-                            if board[king_index + possible_move as usize]
-                                .as_ref()
+                            if board[(king_index as i8 + possible_move) as usize]
                                 .unwrap()
                                 .piece_type
                                 == Bishop
-                                || board[king_index + possible_move as usize]
-                                    .as_ref()
+                                || board[(king_index as i8 + possible_move) as usize]
                                     .unwrap()
                                     .piece_type
                                     == Queen
@@ -430,9 +472,8 @@ impl Game {
             //Check so that the line is inside the board
             if (possible_move + king_index as i8) <= 63 && (possible_move + king_index as i8) >= 0 {
                 //piece in path
-                if board[king_index + possible_move as usize].is_some() {
-                    if board[king_index + possible_move as usize]
-                        .as_ref()
+                if board[(king_index as i8 + possible_move) as usize].is_some() {
+                    if board[(king_index as i8 + possible_move) as usize]
                         .unwrap()
                         .color
                         != acting_color
@@ -443,8 +484,7 @@ impl Game {
                             || direction.0 == 2
                             || direction.0 == -2
                         {
-                            if board[king_index + possible_move as usize]
-                                .as_ref()
+                            if board[(king_index as i8 + possible_move) as usize]
                                 .unwrap()
                                 .piece_type
                                 == Knight
@@ -453,8 +493,7 @@ impl Game {
                             }
                         }
                         //Checks if we are being attacked by a pawn
-                        if board[king_index + possible_move as usize]
-                            .as_ref()
+                        if board[(king_index as i8 + possible_move) as usize]
                             .unwrap()
                             .piece_type
                             == Pawn
@@ -498,7 +537,7 @@ impl Game {
             _default => 0,
         };
         //This assumes that the input is correct...
-        column * 8 + _string_input[1..2].parse::<usize>().unwrap() as usize
+        return (column + _string_input[1..2].parse::<usize>().unwrap() * 8 - 8) as usize;
     }
 }
 
@@ -533,6 +572,7 @@ mod tests {
     use super::Piece;
     use crate::piece::Colors::*;
     use crate::piece::PieceType::*;
+    use crate::GameState::*;
     // check test framework
     // example test
     // check that game state is in progress after initialisation
@@ -546,5 +586,55 @@ mod tests {
     fn board_is_working_to_reference_after_init() {
         let game = Game::new();
         assert_eq!(game.board[0].unwrap(), Piece::new(Rook, White));
+    }
+
+    #[test]
+    fn movement_test() {
+        let mut game = Game::new();
+        let mut game_board: [Option<Piece>; 64] = game.board;
+        game_board = Game::make_move(&mut game, game_board, "e2".to_string(), "e4".to_string());
+        for x in 0..64 {
+            if x % 8 == 0 {
+                println!();
+            }
+            if game_board[x].is_some() {
+                print!("{:?} \t", game_board[x].unwrap().piece_type)
+            } else {
+                print!("* \t");
+            }
+        }
+        assert_eq!(game.get_game_state(), InProgress);
+        //Checks that the color switched
+        assert_eq!(game.acting_color, Black);
+    }
+
+    #[test]
+    fn check_test_with_moves() {
+        let mut game = Game::new();
+        let mut game_board: [Option<Piece>; 64] = game.board;
+        let possible_moves = &game.possible_moves;
+        let mut n: usize = 0;
+        for z in possible_moves {
+            println!("{:?}", z);
+            n += 1;
+        }
+        println!("{}", n);
+        game_board = Game::make_move(&mut game, game_board, "e2".to_string(), "e4".to_string());
+        assert_eq!(game.get_game_state(), InProgress);
+        game_board = Game::make_move(&mut game, game_board, "d7".to_string(), "d5".to_string());
+        assert_eq!(game.get_game_state(), InProgress);
+        game_board = Game::make_move(&mut game, game_board, "f1".to_string(), "b5".to_string());
+        assert_eq!(game.get_game_state(), InProgress);
+        for x in 0..64 {
+            if x % 8 == 0 {
+                println!();
+            }
+            if game_board[x].is_some() {
+                print!("{:?} \t", game_board[x].unwrap().piece_type)
+            } else {
+                print!("* \t");
+            }
+        }
+        assert_eq!(game.get_game_state(), Check);
     }
 }
